@@ -1,5 +1,4 @@
 #include <type_traits>
-#include <iostream>
 
 // The task:
 // to implement analog of the boost::mpl::quoteN for any N (N >= 1) with C++17 as test::quote
@@ -8,44 +7,30 @@
 // The new implementation quote should to be in "test" namespace
 namespace test {
 
-// 3 underlying templates are using to check
+// 3 underlying templates are using for "apply" implementation (see boost::mpl::quote description)
+// void_t approach is used 
 // does a metafunction have a type definition or not
-// has_type<metafunc>::has = true; if "metafunc" has typedef X type
-// has_type<metafunc>::has = false; otherwise
+// return metaclass with metafunction::type when metafunction has a nested type member ::type
+// and metaclass with metafunction as type otherwise
 template<typename T>
 using void_t = void;
 
 template<typename T, typename = void>  // ::type is absent
-struct has_type {
-	static constexpr bool has = false;
+struct apply_impl {
+	typedef T type;
 };
 
 template<typename T>
-struct has_type<T, void_t<typename T::type>> { // ::type is present
-	static constexpr bool has = true;
-};
-
-//-------------------------------
-//-------------------------------
-// 2 underlying templates are using for "apply" implementation (see boost::mpl::quote description)
-// it got bool value to choose what kind of metaclass should be returned
-// true - when metafunction has a nested type member ::type
-// false - otherwise
-template<typename T, bool has_type_>
-struct apply_impl {
+struct apply_impl<T, void_t<typename T::type>> { // ::type is present
 	typedef typename T::type type;
 };
 
-template<typename T>
-struct apply_impl<T, false> {
-	typedef T type;
-};
 //-------------------------------
 //-------------------------------
 // quote main implementation
 template<template<typename ...Args> class f>
 struct quote {
-	template<typename ...Args> struct apply: apply_impl<f<Args ...>, has_type<f<Args ...>>::has> {
+	template<typename ...Args> struct apply: apply_impl<f<Args ...>> {
 	};
 };
 // finish of the "test" namespace
@@ -82,22 +67,16 @@ struct test_three_ary_without_type {
 //1. test base helpers
 //2. test main functional
 int main() {
-//1. test base helpers.
-//a. test::has_type
-	std::cout << "test_one_ary has a nested type member ::type so has_type::has should return true (or 1) - result="
-			<< test::has_type<test_one_ary<int>>::has << std::endl;
-	std::cout
-			<< "test_one_ary_without_type hasn't a nested type member ::type so has_type::has should return false (or 0) - result="
-			<< test::has_type<test_one_ary_without_type<int>>::has << std::endl;
+
 //b. test::apply_impl
 //compile-time test. If compiled - all is OK
 
 //test_one_ary has nested ::type so pass true as second parameter
-	typedef test::apply_impl<test_one_ary<double>, true> test2_check_type;
+	typedef test::apply_impl<test_one_ary<double>> test2_check_type;
 	static_assert(std::is_same<test2_check_type::type, test_one_ary<double>::type>::value);
 
 //test_one_ary_without_type hasn't nested ::type so pass false as second parameter
-	typedef test::apply_impl<test_one_ary_without_type<double>, false> test2_2_check_type;
+	typedef test::apply_impl<test_one_ary_without_type<double>> test2_2_check_type;
 	static_assert(std::is_same<test2_2_check_type::type, test_one_ary_without_type<double>>::value);
 
 //-------------------------------
