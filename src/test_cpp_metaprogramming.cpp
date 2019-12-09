@@ -7,22 +7,20 @@
 // The new implementation quote should to be in "test" namespace
 namespace test {
 
-// 3 underlying templates are using for "apply" implementation (see boost::mpl::quote description)
+// 2 underlying templates are using for "apply" implementation (see boost::mpl::quote description)
 // void_t approach is used 
 // does a metafunction have a type definition or not
 // return metaclass with metafunction::type when metafunction has a nested type member ::type
 // and metaclass with metafunction as type otherwise
-template<typename T>
-using void_t = void;
 
 template<typename T, typename = void>  // ::type is absent
 struct apply_impl {
-	typedef T type;
+	using type = T;
 };
 
 template<typename T>
-struct apply_impl<T, void_t<typename T::type>> { // ::type is present
-	typedef typename T::type type;
+struct apply_impl<T, std::void_t<typename T::type>> { // ::type is present
+	using type = typename T::type;
 };
 
 //-------------------------------
@@ -30,8 +28,11 @@ struct apply_impl<T, void_t<typename T::type>> { // ::type is present
 // quote main implementation
 template<template<typename ...Args> class f>
 struct quote {
-	template<typename ...Args> struct apply: apply_impl<f<Args ...>> {
-	};
+	template<typename ...Args>
+	using apply = apply_impl<f<Args ...>>;
+
+	template<typename ... ArgsT>
+	using apply_t = typename apply<ArgsT ...>::type;
 };
 // finish of the "test" namespace
 }
@@ -44,7 +45,7 @@ struct quote {
 //test metafunction defenitions
 template<typename T1>
 struct test_one_ary {
-	typedef T1 type;
+	using type = T1;
 };
 
 template<typename T1>
@@ -54,7 +55,7 @@ struct test_one_ary_without_type {
 //
 template<typename T1, typename T2, typename T3>
 struct test_three_ary {
-	typedef T2 type;
+	using type = T2;
 };
 
 template<typename T1, typename T2, typename T3>
@@ -85,20 +86,20 @@ int main() {
 //compile-time test. If compiled - all is OK
 
 //test3_1 = double because test_one_ary::type is T1
-	typedef test::quote<test_one_ary>::apply<double>::type test3_1;
-	static_assert(std::is_same<test3_1, double>::value);
+	typedef test::quote<test_one_ary>::apply_t<double> test3_1;
+	static_assert(std::is_same_v<test3_1, double>);
 
 //test3_2 = metafunction because test_one_ary_without_type hasn't nested ::type
-	typedef test::quote<test_one_ary_without_type>::apply<double>::type test3_2;
-	static_assert(std::is_same<test3_2, test_one_ary_without_type<double>>::value);
+	typedef test::quote<test_one_ary_without_type>::apply_t<double> test3_2;
+	static_assert(std::is_same_v<test3_2, test_one_ary_without_type<double>>);
 //-------------------------------
 //test4_1 = int because test_three_ary::type is T2 (second parameter of the func)
-	typedef test::quote<test_three_ary>::apply<double, int, float>::type test4_1;
-	static_assert(std::is_same<test4_1, int>::value);
+	typedef test::quote<test_three_ary>::apply_t<double, int, float> test4_1;
+	static_assert(std::is_same_v<test4_1, int>);
 
 //test4_2 = metafunction because test_three_ary_without_type hasn't nested ::type
-	typedef test::quote<test_three_ary_without_type>::apply<double, int, float>::type test4_2;
-	static_assert(std::is_same<test4_2, test_three_ary_without_type<double, int, float>>::value);
+	typedef test::quote<test_three_ary_without_type>::apply_t<double, int, float> test4_2;
+	static_assert(std::is_same_v<test4_2, test_three_ary_without_type<double, int, float>>);
 
 	return 0;
 }
