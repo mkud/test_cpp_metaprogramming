@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.com/mkud/test_Matrix.svg?branch=master)](https://travis-ci.com/mkud/test_Matrix)
+
 # The test task with a demonstration of C++ metaprogramming
 
 ## The task
